@@ -1,4 +1,8 @@
-# Test High Availability Proxy with Keepalived: 
+Test High Availability Proxy with Keepalived: 
+
+
+
+
 
 # Send request to the virutal IP and see if it returns the content retrieved from web servers
 curl -XGET http://192.168.0.60:8080/healthz
