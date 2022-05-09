@@ -1,0 +1,90 @@
+version: '3.9'
+
+services:
+    server-one:
+        container_name: serverone
+        hostname: serverone
+        build: ./web
+        ports: 
+            - 18080:80 # http
+            - 18443:443 # in case of ssl enabled
+        networks:
+            haproxy:
+                ipv4_address: 192.168.0.10
+
+    server-two:
+        container_name: servertwo
+        hostname: servertwo
+        build: ./web
+        ports: 
+            - 19080:80 # http
+            - 19443:443 # in case of ssl enabled
+        networks:
+            haproxy:
+                ipv4_address: 192.168.0.20
+
+
+    lb-master:
+        container_name: lb-master
+        hostname: master
+        build: ./lb
+        sysctls:
+            - net.ipv4.ip_nonlocal_bind=1
+        privileged: true
+        ports: 
+            - 28080:8080 # http
+            - 28443:8443 # https
+            - 28090:8090 # stats
+        networks:
+            haproxy:
+                ipv4_address: 192.168.0.40
+        restart: on-failure
+        # Copy haproxy configuration
+        # Start HAProxy
+        # Start keepalived 
+        # Check if the vIP is assigned
+        command: 
+        - /bin/bash
+        - -c
+        - |   
+            keepalived --dump-conf --log-console --log-detail --log-facility 7 --vrrp -f /etc/keepalived/keepalived-master.conf
+            ip addr show eth0 
+            tail -f /var/log/syslog
+
+
+    lb-backup:
+        container_name: lb-backup
+        hostname: backup
+        build: ./lb
+        sysctls:
+            - net.ipv4.ip_nonlocal_bind=1
+        privileged: true
+        ports: 
+            - 29080:8080 # http
+            - 29443:8443 # https
+            - 29090:8090 # stats
+        networks:
+            haproxy:
+                ipv4_address: 192.168.0.50
+        restart: on-failure
+        # Copy haproxy configuration
+        # Start HAProxy
+        # Start keepalived 
+        # Check if the vIP is assigned
+        command: 
+        - /bin/bash
+        - -c
+        - |
+            keepalived --dump-conf --log-console --log-detail --log-facility 7 --vrrp -f /etc/keepalived/keepalived-backup.conf
+            ip addr show eth0 
+            tail -f /var/log/syslog
+            
+
+networks:
+    haproxy:
+        driver: bridge
+        ipam:
+            driver: default
+            config:
+                - subnet: 192.168.0.0/24
+
